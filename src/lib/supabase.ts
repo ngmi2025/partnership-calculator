@@ -1,14 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Lazy initialization - only create client when needed and configured
+let supabaseInstance: SupabaseClient | null = null;
 
-// Client-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getSupabaseClient(): SupabaseClient | null {
+  if (supabaseInstance) return supabaseInstance;
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+  
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseInstance;
+}
 
 // Server-side Supabase client with service role key
-export function createServerClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+export function createServerClient(): SupabaseClient | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
+  }
+  
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
@@ -45,6 +62,11 @@ export async function saveLead(
   url: string,
   siteName: string
 ): Promise<{ lead: Lead | null; isNew: boolean; error: string | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { lead: null, isNew: false, error: 'Supabase not configured' };
+  }
+
   // Check if lead already exists
   const { data: existingLead } = await supabase
     .from('leads')
@@ -90,6 +112,11 @@ export async function saveAnalysis(
   earningsRealistic: number,
   earningsOptimistic: number
 ): Promise<{ analysis: Analysis | null; error: string | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { analysis: null, error: 'Supabase not configured' };
+  }
+
   const { data, error } = await supabase
     .from('analyses')
     .insert({
@@ -114,6 +141,11 @@ export async function saveAnalysis(
 export async function getLeadWithAnalysis(
   leadId: string
 ): Promise<{ lead: Lead | null; analysis: Analysis | null; error: string | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { lead: null, analysis: null, error: 'Supabase not configured' };
+  }
+
   const { data: lead, error: leadError } = await supabase
     .from('leads')
     .select('*')
