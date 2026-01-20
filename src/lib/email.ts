@@ -1,6 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to prevent build errors when API key not set
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+  return new Resend(apiKey);
+}
 
 interface WelcomeEmailParams {
   to: string;
@@ -140,6 +147,13 @@ The Upgraded Points Team
 ---
 You're receiving this because you used our Partner Earnings Calculator.
   `;
+
+  const resend = getResendClient();
+  
+  if (!resend) {
+    console.warn('Resend not configured - email not sent');
+    return null;
+  }
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'partners@upgradedpoints.com';
 
