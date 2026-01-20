@@ -10,6 +10,7 @@ function getResendClient(): Resend | null {
 }
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'partners@upgradedpoints.com';
+const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || 'partnerships@upgradedpoints.com';
 const ALERTS_EMAIL = process.env.ALERTS_EMAIL || 'partnerships@upgradedpoints.com';
 
 // Utility functions
@@ -72,6 +73,7 @@ export async function sendWelcomeEmail({ name, email, clickRange, earnings }: Em
 
   const { data, error } = await resend.emails.send({
     from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    replyTo: REPLY_TO_EMAIL,
     to: email,
     subject: `Your Partner Earnings Report - ${formatCurrency(earnings.realistic)}/year potential`,
     html: `
@@ -169,6 +171,7 @@ export async function sendDay3FollowUp({ name, email, clickRange, earnings }: Em
 
   const { data, error } = await resend.emails.send({
     from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    replyTo: REPLY_TO_EMAIL,
     to: email,
     subject: 'Quick question about your earnings report',
     html: `
@@ -232,6 +235,7 @@ export async function sendDay7Final({ name, email, clickRange, earnings }: Email
 
   const { data, error } = await resend.emails.send({
     from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    replyTo: REPLY_TO_EMAIL,
     to: email,
     subject: 'Last thought on the partnership',
     html: `

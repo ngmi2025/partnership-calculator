@@ -37,11 +37,22 @@ export interface Lead {
   url?: string;
   site_name?: string | null;
   click_range_id?: string;
+  click_range?: string;
   monthly_clicks?: number;
+  clicks_midpoint?: number;
   channels?: string[];
+  earnings_conservative?: number;
+  earnings_realistic?: number;
+  earnings_optimistic?: number;
+  lead_score?: number;
+  priority?: string;
   created_at: string;
+  replied_at?: string | null;
+  contacted_at?: string | null;
+  applied_at?: string | null;
   source?: string;
   status?: string;
+  notes?: string | null;
 }
 
 export interface Analysis {

@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       .from('leads')
       .select('id, name, email, click_range, clicks_midpoint, earnings_conservative, earnings_realistic, earnings_optimistic')
       .eq('status', 'new')
+      .is('replied_at', null)  // Don't email leads who have replied
       .gte('created_at', day3Window.toISOString())
       .lte('created_at', day3Cutoff.toISOString());
 
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
       .from('leads')
       .select('id, name, email, click_range, clicks_midpoint, earnings_conservative, earnings_realistic, earnings_optimistic')
       .eq('status', 'new')
+      .is('replied_at', null)  // Don't email leads who have replied
       .gte('created_at', day7Window.toISOString())
       .lte('created_at', day7Cutoff.toISOString());
 
