@@ -116,7 +116,7 @@ export default function Home() {
       {/* Header */}
       <header className="w-full py-6 px-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <a href="https://upgradedpoints.com" className="flex items-center cursor-pointer">
+          <a href="/" className="flex items-center cursor-pointer">
             <img 
               src="/Upgraded-Points-Logo.svg" 
               alt="Upgraded Points" 
