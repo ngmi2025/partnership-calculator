@@ -32,6 +32,7 @@ export function createServerClient(): SupabaseClient | null {
 // Types for database tables
 export interface Lead {
   id: string;
+  name?: string | null;
   email: string;
   url?: string;
   site_name?: string | null;

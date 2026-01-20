@@ -14,6 +14,7 @@ export default function Home() {
   const [calculation, setCalculation] = useState<EarningsCalculation | null>(null);
   const [selectedRange, setSelectedRange] = useState<string | null>(null);
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
+  const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +77,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          name: userName,
           email: userEmail,
           monthlyClicks: result.monthlyClicks,
           clickRangeId: result.clickRangeId,
@@ -103,6 +105,7 @@ export default function Home() {
     setCalculation(null);
     setSelectedRange(null);
     setSelectedChannels([]);
+    setUserName('');
     setUserEmail('');
     setEmailError(null);
     setShowApplicationForm(false);
@@ -228,6 +231,15 @@ export default function Home() {
               {/* Email form */}
               <form onSubmit={handleEmailSubmit} className="max-w-sm mx-auto">
                 <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg mb-3 transition-all duration-200 text-gray-900 placeholder-gray-400 focus:border-up-blue focus:ring-up-light-blue focus:outline-none focus:ring-4"
+                  disabled={isSubmitting}
+                  autoFocus
+                />
+                <input
                   type="email"
                   value={userEmail}
                   onChange={(e) => {
@@ -245,7 +257,6 @@ export default function Home() {
                     focus:outline-none focus:ring-4
                   `}
                   disabled={isSubmitting}
-                  autoFocus
                 />
                 {emailError && (
                   <p className="text-sm text-red-500 mb-4 -mt-2">{emailError}</p>
@@ -426,6 +437,7 @@ export default function Home() {
                     </div>
                   ) : (
                     <ApplicationForm
+                      prefillName={userName}
                       prefillEmail={userEmail}
                       prefillClickRange={selectedRange}
                       prefillChannels={selectedChannels}
@@ -483,18 +495,20 @@ export default function Home() {
 
 // Inline Application Form Component
 function ApplicationForm({ 
+  prefillName,
   prefillEmail, 
   prefillClickRange,
   prefillChannels,
   onCancel 
 }: { 
+  prefillName: string;
   prefillEmail: string;
   prefillClickRange: string | null;
   prefillChannels: string[];
   onCancel: () => void;
 }) {
   const [formData, setFormData] = useState({
-    name: '',
+    name: prefillName || '',
     email: prefillEmail || '',
     website: '',
     message: '',

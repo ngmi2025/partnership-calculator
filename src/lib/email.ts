@@ -11,6 +11,7 @@ function getResendClient() {
 
 interface WelcomeEmailParams {
   to: string;
+  name?: string;
   monthlyClicks: number;
   earningsConservative: number;
   earningsRealistic: number;
@@ -20,12 +21,14 @@ interface WelcomeEmailParams {
 
 export async function sendWelcomeEmail({
   to,
+  name,
   monthlyClicks,
   earningsConservative,
   earningsRealistic,
   earningsOptimistic,
   industryDifference,
 }: WelcomeEmailParams) {
+  const greeting = name ? `Hi ${name},` : 'Hi there,';
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -54,7 +57,7 @@ export async function sendWelcomeEmail({
     <p style="color: #7F8C8D; margin-top: 10px;">Upgraded Points Partner Program</p>
   </div>
   
-  <p style="font-size: 16px;">Hi there,</p>
+  <p style="font-size: 16px;">${greeting}</p>
   
   <p style="font-size: 16px;">Thanks for using the Upgraded Points Partner Earnings Calculator.</p>
   
@@ -113,7 +116,7 @@ export async function sendWelcomeEmail({
   `;
 
   const text = `
-Hi there,
+${greeting}
 
 Thanks for using the Upgraded Points Partner Earnings Calculator.
 

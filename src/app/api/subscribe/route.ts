@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
+      name,
       email,
       monthlyClicks,
       clickRangeId,
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
           .from('leads')
           .upsert(
             {
+              name: name || null,
               email,
               estimated_clicks: monthlyClicks,
               click_range: clickRangeId,
@@ -84,6 +86,7 @@ export async function POST(request: NextRequest) {
     try {
       await sendWelcomeEmail({
         to: email,
+        name: name || undefined,
         monthlyClicks,
         earningsConservative,
         earningsRealistic,
