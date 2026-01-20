@@ -38,41 +38,43 @@ export async function POST(request: NextRequest) {
     try {
       const supabase = createServerClient();
       
-      // Upsert lead (update if exists, insert if new)
-      const { data: lead, error: leadError } = await supabase
-        .from('leads')
-        .upsert(
-          {
-            email,
-            estimated_clicks: monthlyClicks,
-            click_range: clickRangeId,
-            channels,
-            source: 'calculator',
-            status: 'new',
-          },
-          {
-            onConflict: 'email',
-          }
-        )
-        .select()
-        .single();
+      if (supabase) {
+        // Upsert lead (update if exists, insert if new)
+        const { data: lead, error: leadError } = await supabase
+          .from('leads')
+          .upsert(
+            {
+              email,
+              estimated_clicks: monthlyClicks,
+              click_range: clickRangeId,
+              channels,
+              source: 'calculator',
+              status: 'new',
+            },
+            {
+              onConflict: 'email',
+            }
+          )
+          .select()
+          .single();
 
-      if (leadError) {
-        console.error('Supabase lead error:', leadError);
-      } else {
-        leadId = lead?.id;
-        
-        // Store calculation
-        await supabase
-          .from('calculations')
-          .insert({
-            lead_id: leadId,
-            monthly_clicks: monthlyClicks,
-            earnings_conservative: earningsConservative,
-            earnings_realistic: earningsRealistic,
-            earnings_optimistic: earningsOptimistic,
-            industry_comparison: industryDifference,
-          });
+        if (leadError) {
+          console.error('Supabase lead error:', leadError);
+        } else {
+          leadId = lead?.id;
+          
+          // Store calculation
+          await supabase
+            .from('calculations')
+            .insert({
+              lead_id: leadId,
+              monthly_clicks: monthlyClicks,
+              earnings_conservative: earningsConservative,
+              earnings_realistic: earningsRealistic,
+              earnings_optimistic: earningsOptimistic,
+              industry_comparison: industryDifference,
+            });
+        }
       }
     } catch (dbError) {
       console.error('Database error (continuing without DB):', dbError);
