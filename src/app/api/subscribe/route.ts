@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
-import { sendWelcomeEmail } from '@/lib/email';
+import { getLeadScore, isHighValueLead } from '@/lib/leadScoring';
+import { sendWelcomeEmail, sendHighValueAlert } from '@/lib/emails';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,73 +34,143 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Calculate lead score
+    const { score, priority } = getLeadScore(clickRangeId);
+
+    // Get click range label for emails
+    const clickRangeLabels: Record<string, string> = {
+      'range-1': '100-500',
+      'range-2': '500-2,000',
+      'range-3': '2,000-5,000',
+      'range-4': '5,000-10,000',
+      'range-5': '10,000+',
+    };
+    const clickRangeLabel = clickRangeLabels[clickRangeId] || clickRangeId;
+
     let leadId = null;
+    let isNewLead = false;
 
     // Try to save to Supabase (graceful degradation if not configured)
     try {
       const supabase = createServerClient();
       
       if (supabase) {
-        // Upsert lead (update if exists, insert if new)
-        const { data: lead, error: leadError } = await supabase
+        // Check if lead already exists
+        const { data: existingLead } = await supabase
           .from('leads')
-          .upsert(
-            {
-              name: name || null,
-              email,
-              estimated_clicks: monthlyClicks,
-              click_range: clickRangeId,
-              channels,
-              source: 'calculator',
-              status: 'new',
-            },
-            {
-              onConflict: 'email',
-            }
-          )
-          .select()
+          .select('id')
+          .eq('email', email)
           .single();
 
-        if (leadError) {
-          console.error('Supabase lead error:', leadError);
-        } else {
-          leadId = lead?.id;
-          
-          // Store calculation
-          await supabase
-            .from('calculations')
-            .insert({
-              lead_id: leadId,
-              monthly_clicks: monthlyClicks,
+        if (existingLead) {
+          // Update existing lead
+          const { data: lead, error: leadError } = await supabase
+            .from('leads')
+            .update({
+              name: name || null,
+              clicks_midpoint: monthlyClicks,
+              click_range: clickRangeId,
+              channels,
               earnings_conservative: earningsConservative,
               earnings_realistic: earningsRealistic,
               earnings_optimistic: earningsOptimistic,
-              industry_comparison: industryDifference,
-            });
+              lead_score: score,
+              priority,
+            })
+            .eq('email', email)
+            .select('id')
+            .single();
+
+          if (leadError) {
+            console.error('Supabase lead update error:', leadError);
+          } else {
+            leadId = lead?.id;
+          }
+        } else {
+          // Insert new lead
+          isNewLead = true;
+          const { data: lead, error: leadError } = await supabase
+            .from('leads')
+            .insert({
+              name: name || null,
+              email,
+              clicks_midpoint: monthlyClicks,
+              click_range: clickRangeId,
+              channels,
+              earnings_conservative: earningsConservative,
+              earnings_realistic: earningsRealistic,
+              earnings_optimistic: earningsOptimistic,
+              lead_score: score,
+              priority,
+              source: 'calculator',
+              status: 'new',
+            })
+            .select('id')
+            .single();
+
+          if (leadError) {
+            console.error('Supabase lead insert error:', leadError);
+          } else {
+            leadId = lead?.id;
+
+            // Track welcome email event
+            if (leadId) {
+              await supabase.from('email_events').insert({
+                lead_id: leadId,
+                email_type: 'welcome',
+              });
+            }
+          }
         }
       }
     } catch (dbError) {
       console.error('Database error (continuing without DB):', dbError);
     }
 
-    // Try to send welcome email (graceful degradation if not configured)
-    try {
-      await sendWelcomeEmail({
-        to: email,
-        name: name || undefined,
-        monthlyClicks,
-        earningsConservative,
-        earningsRealistic,
-        earningsOptimistic,
-        industryDifference,
-      });
-    } catch (emailError) {
-      console.error('Email error (continuing without email):', emailError);
+    // Only send emails for new leads
+    if (isNewLead) {
+      // Try to send welcome email (graceful degradation if not configured)
+      try {
+        await sendWelcomeEmail({
+          name: name || undefined,
+          email,
+          clickRange: clickRangeLabel,
+          earnings: {
+            conservative: earningsConservative,
+            realistic: earningsRealistic,
+            optimistic: earningsOptimistic,
+          },
+        });
+      } catch (emailError) {
+        console.error('Welcome email error (continuing):', emailError);
+      }
+
+      // Send alert for high-value leads
+      if (isHighValueLead(score)) {
+        try {
+          await sendHighValueAlert(
+            name,
+            email,
+            clickRangeLabel,
+            {
+              conservative: earningsConservative,
+              realistic: earningsRealistic,
+              optimistic: earningsOptimistic,
+            },
+            priority
+          );
+        } catch (alertError) {
+          console.error('Alert email error (continuing):', alertError);
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
       leadId,
+      isNewLead,
+      score,
+      priority,
       message: 'Report unlocked successfully',
     });
   } catch (error) {
