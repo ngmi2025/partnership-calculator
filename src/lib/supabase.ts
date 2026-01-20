@@ -16,11 +16,14 @@ export function createServerClient() {
 export interface Lead {
   id: string;
   email: string;
-  url: string;
-  site_name: string | null;
+  url?: string;
+  site_name?: string | null;
+  click_range_id?: string;
+  monthly_clicks?: number;
+  channels?: string[];
   created_at: string;
-  source: string;
-  status: string;
+  source?: string;
+  status?: string;
 }
 
 export interface Analysis {
