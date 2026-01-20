@@ -83,7 +83,6 @@ export async function sendWelcomeEmail({ name, email, clickRange, earnings }: Em
       <p>Either way - let me know if you have any questions. Just hit reply.</p>
 
       <p>
-        Luke<br><br>
         --<br>
         <strong>Luke R</strong><br>
         Partner Development, Upgraded Points<br>
@@ -111,8 +110,6 @@ If you want to chat through how it works: https://calendly.com/upgradedpoints/pa
 Or apply directly: https://partnership-calculator.vercel.app
 
 Let me know if you have questions - just hit reply.
-
-Luke
 
 --
 Luke R
@@ -169,7 +166,6 @@ export async function sendDay3FollowUp({ name, email, clickRange, earnings }: Em
       <p>Or just reply here - happy to answer any questions.</p>
 
       <p>
-        Luke<br><br>
         --<br>
         <strong>Luke R</strong><br>
         Partner Development, Upgraded Points<br>
@@ -193,8 +189,6 @@ No exclusivity, no minimums, no contracts. If it doesn't work out, no hard feeli
 Worth a 15-min call? https://calendly.com/upgradedpoints/partner-chat
 
 Or just reply here - happy to answer any questions.
-
-Luke
 
 --
 Luke R
@@ -251,7 +245,6 @@ export async function sendDay7Final({ name, email, clickRange, earnings }: Email
       <p>Good luck with whatever you're building.</p>
 
       <p>
-        Luke<br><br>
         --<br>
         <strong>Luke R</strong><br>
         Partner Development, Upgraded Points<br>
@@ -275,8 +268,6 @@ Your estimate was around ${formatCurrency(earnings.realistic)}/year based on ${c
 If timing isn't right, no worries. But if you want to explore it: https://partnership-calculator.vercel.app
 
 Good luck with whatever you're building.
-
-Luke
 
 --
 Luke R
