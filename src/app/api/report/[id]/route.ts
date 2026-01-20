@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLeadWithAnalysis } from '@/lib/supabase';
-import { calculateEarnings, getCardContentLabel } from '@/lib/calculations';
 
 export async function GET(
   request: NextRequest,
@@ -33,39 +32,21 @@ export async function GET(
       );
     }
 
-    // If we have analysis data, recalculate projections
-    let projection = null;
-    let contentLabel = null;
-
-    if (analysis) {
-      projection = calculateEarnings(
-        analysis.traffic_estimate,
-        analysis.card_content_score
-      );
-      contentLabel = getCardContentLabel(analysis.card_content_score);
-    }
-
     return NextResponse.json({
       success: true,
       data: {
         lead: {
           id: lead.id,
           email: lead.email,
-          url: lead.url,
-          siteName: lead.site_name,
+          clickRangeId: lead.click_range_id,
+          monthlyClicks: lead.monthly_clicks,
+          channels: lead.channels,
           createdAt: lead.created_at,
         },
-        analysis: analysis ? {
-          trafficEstimate: analysis.traffic_estimate,
-          trafficSource: analysis.traffic_source,
-          cardContentScore: analysis.card_content_score,
-          contentLabel,
-          earnings: {
-            conservative: analysis.earnings_conservative,
-            realistic: analysis.earnings_realistic,
-            optimistic: analysis.earnings_optimistic,
-          },
-          projection,
+        earnings: analysis ? {
+          conservative: analysis.earnings_conservative,
+          realistic: analysis.earnings_realistic,
+          optimistic: analysis.earnings_optimistic,
         } : null,
       },
     });
