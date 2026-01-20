@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Blue background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#4A9BE8"/>
+  
+  <!-- UP text - clean and bold -->
+  <text x="16" y="22" 
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+        font-size="16" 
+        font-weight="900" 
+        text-anchor="middle"
+        letter-spacing="-1">
+    <tspan fill="white">U</tspan><tspan fill="#F5A623">P</tspan>
+  </text>
+</svg>
