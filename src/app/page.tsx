@@ -450,6 +450,11 @@ export default function Home() {
                   ← Calculate again with different numbers
                 </button>
               </div>
+
+              {/* Disclaimer */}
+              <p className="mt-8 text-xs text-gray-400 text-center">
+                Estimates based on typical partner performance. Actual earnings vary by audience, content, and card mix.
+              </p>
             </div>
           )}
         </div>
