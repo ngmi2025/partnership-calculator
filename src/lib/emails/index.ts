@@ -9,7 +9,7 @@ function getResendClient(): Resend | null {
   return new Resend(apiKey);
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'partners@upgradedpoints.com';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'partnerships@upgradedpoints.com';
 const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || 'partnerships@upgradedpoints.com';
 const ALERTS_EMAIL = process.env.ALERTS_EMAIL || 'partnerships@upgradedpoints.com';
 
@@ -22,30 +22,8 @@ const formatCurrency = (amount: number) =>
     maximumFractionDigits: 0,
   }).format(amount);
 
-const formatNumber = (num: number) =>
-  new Intl.NumberFormat('en-US').format(num);
-
 const getFirstName = (name: string | undefined) =>
   name ? name.split(' ')[0] : 'there';
-
-// Shared email styles
-const emailStyles = `
-  body { font-family: Arial, sans-serif; line-height: 1.6; color: #1F2937; }
-  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-  .header { text-align: center; padding: 20px 0; }
-  .logo { font-size: 24px; font-weight: bold; }
-  .logo-up { color: #F7941D; }
-  .logo-points { color: #0F75BD; }
-  .earnings-box { background: #0F75BD; color: white; padding: 30px; border-radius: 12px; text-align: center; margin: 20px 0; }
-  .earnings-amount { font-size: 48px; font-weight: bold; }
-  .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-  .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #E5E7EB; }
-  .table th { background: #F3F4F6; }
-  .highlight { background: #E8F4FC; }
-  .cta-button { display: inline-block; background: #F7941D; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 10px 5px; }
-  .cta-secondary { background: white; color: #1F2937; border: 1px solid #E5E7EB; }
-  .footer { text-align: center; padding: 20px; color: #6B7280; font-size: 14px; }
-`;
 
 // Email parameters interface
 export interface EmailParams {
@@ -59,8 +37,17 @@ export interface EmailParams {
   };
 }
 
+// Plain text email styles - minimal, personal feel
+const plainTextStyles = `
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  max-width: 600px;
+`;
+
 // ============================================
-// WELCOME EMAIL
+// WELCOME EMAIL - Personal, plain text style
 // ============================================
 export async function sendWelcomeEmail({ name, email, clickRange, earnings }: EmailParams) {
   const resend = getResendClient();
@@ -71,82 +58,74 @@ export async function sendWelcomeEmail({ name, email, clickRange, earnings }: Em
 
   const firstName = getFirstName(name);
 
+  const htmlContent = `
+    <div style="${plainTextStyles}">
+      <p>Hey ${firstName},</p>
+
+      <p>Thanks for running the numbers on our calculator.</p>
+
+      <p>Based on ${clickRange} monthly card clicks, here's what you could earn with Upgraded Points:</p>
+
+      <p style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 3px solid #0F75BD;">
+        <strong>Conservative:</strong> ${formatCurrency(earnings.conservative)}/year<br>
+        <strong>Realistic:</strong> ${formatCurrency(earnings.realistic)}/year<br>
+        <strong>Optimistic:</strong> ${formatCurrency(earnings.optimistic)}/year
+      </p>
+
+      <p>Quick context on why we pay more than most:</p>
+
+      <p>We offer 65-70% commission share (industry standard is ~50%). We work directly with Chase, Amex, Capital One, Citi - no middlemen. And we actually promote our partners through our newsletter, site features, and backlinks.</p>
+
+      <p>If you want to chat through how it works, happy to jump on a quick call: <a href="https://calendly.com/upgradedpoints/partner-chat">grab a time here</a></p>
+
+      <p>Or if you're ready to get started: <a href="https://partnership-calculator.vercel.app">apply here</a></p>
+
+      <p>Either way - let me know if you have any questions. Just hit reply.</p>
+
+      <p>
+        Luke<br><br>
+        --<br>
+        <strong>Luke R</strong><br>
+        Partner Development, Upgraded Points<br>
+        <a href="https://upgradedpoints.com">upgradedpoints.com</a>
+      </p>
+    </div>
+  `;
+
+  const textContent = `Hey ${firstName},
+
+Thanks for running the numbers on our calculator.
+
+Based on ${clickRange} monthly card clicks, here's what you could earn with Upgraded Points:
+
+Conservative: ${formatCurrency(earnings.conservative)}/year
+Realistic: ${formatCurrency(earnings.realistic)}/year
+Optimistic: ${formatCurrency(earnings.optimistic)}/year
+
+Quick context on why we pay more than most:
+
+We offer 65-70% commission share (industry standard is ~50%). We work directly with Chase, Amex, Capital One, Citi - no middlemen. And we actually promote our partners through our newsletter, site features, and backlinks.
+
+If you want to chat through how it works: https://calendly.com/upgradedpoints/partner-chat
+
+Or apply directly: https://partnership-calculator.vercel.app
+
+Let me know if you have questions - just hit reply.
+
+Luke
+
+--
+Luke R
+Partner Development, Upgraded Points
+https://upgradedpoints.com`;
+
   const { data, error } = await resend.emails.send({
-    from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    from: `Luke R from Upgraded Points <${FROM_EMAIL}>`,
     replyTo: REPLY_TO_EMAIL,
     to: email,
-    subject: `Your Partner Earnings Report - ${formatCurrency(earnings.realistic)}/year potential`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>${emailStyles}</style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo"><span class="logo-up">UPGRADED</span><span class="logo-points">POINTS</span></div>
-          </div>
-
-          <p>Hi ${firstName},</p>
-
-          <p>Thanks for using the Partner Earnings Calculator. Based on your estimated <strong>${clickRange} monthly card clicks</strong>, here's what you could earn:</p>
-
-          <div class="earnings-box">
-            <div style="font-size: 14px; text-transform: uppercase; opacity: 0.8;">Estimated Annual Earnings</div>
-            <div class="earnings-amount">${formatCurrency(earnings.realistic)}</div>
-            <div style="font-size: 14px; opacity: 0.8;">Based on realistic projections - ~${formatCurrency(Math.round(earnings.realistic / 12))}/month</div>
-          </div>
-
-          <h3>Your Earnings Projections</h3>
-          <table class="table">
-            <tr>
-              <th>Scenario</th>
-              <th>Monthly</th>
-              <th>Annual</th>
-            </tr>
-            <tr>
-              <td>Conservative</td>
-              <td>${formatCurrency(Math.round(earnings.conservative / 12))}</td>
-              <td>${formatCurrency(earnings.conservative)}</td>
-            </tr>
-            <tr class="highlight">
-              <td><strong>Realistic</strong> (most likely)</td>
-              <td><strong>${formatCurrency(Math.round(earnings.realistic / 12))}</strong></td>
-              <td><strong>${formatCurrency(earnings.realistic)}</strong></td>
-            </tr>
-            <tr>
-              <td>Optimistic</td>
-              <td>${formatCurrency(Math.round(earnings.optimistic / 12))}</td>
-              <td>${formatCurrency(earnings.optimistic)}</td>
-            </tr>
-          </table>
-
-          <h3>Why Upgraded Points?</h3>
-          <ul>
-            <li><strong>65-70% commission</strong> - among the highest in the industry (vs. 50% typical)</li>
-            <li><strong>Premium card access</strong> - Chase, Amex, Capital One, Citi, Discover</li>
-            <li><strong>Real-time tracking</strong> - see clicks and conversions as they happen</li>
-            <li><strong>No minimums</strong> - no contracts, no exclusivity required</li>
-          </ul>
-
-          <p style="text-align: center; margin: 30px 0;">
-            <a href="https://partnership-calculator.vercel.app" class="cta-button">Apply to Partner Program →</a>
-            <a href="https://calendly.com/upgradedpoints/partner-chat" class="cta-button cta-secondary">Book a Call</a>
-          </p>
-
-          <p>Questions? Just reply to this email - we're happy to help.</p>
-
-          <p>Best,<br>The Upgraded Points Team</p>
-
-          <div class="footer">
-            <p>Upgraded Points is a premium affiliate partner of Chase, American Express, Capital One, and other major card issuers.</p>
-            <p><a href="{{{unsubscribe}}}">Unsubscribe</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
+    subject: `Your earnings estimate - ${clickRange} clicks/month`,
+    html: htmlContent,
+    text: textContent,
   });
 
   if (error) {
@@ -169,48 +148,66 @@ export async function sendDay3FollowUp({ name, email, clickRange, earnings }: Em
 
   const firstName = getFirstName(name);
 
+  const htmlContent = `
+    <div style="${plainTextStyles}">
+      <p>Hey ${firstName},</p>
+
+      <p>Just wanted to follow up on your earnings estimate from a few days ago.</p>
+
+      <p>I know everyone says they have the "best rates" - so here's the short version of why we're different:</p>
+
+      <p>
+        1. <strong>65-70% commission</strong> - not 50% like most networks<br>
+        2. <strong>Direct issuer relationships</strong> - Chase, Amex, Capital One, Citi<br>
+        3. <strong>We actually promote partners</strong> - newsletter features, backlinks, co-marketing
+      </p>
+
+      <p>No exclusivity, no minimums, no contracts. If it doesn't work out, no hard feelings.</p>
+
+      <p>Worth a 15-min call? <a href="https://calendly.com/upgradedpoints/partner-chat">Here's my calendar</a></p>
+
+      <p>Or just reply here - happy to answer any questions.</p>
+
+      <p>
+        Luke<br><br>
+        --<br>
+        <strong>Luke R</strong><br>
+        Partner Development, Upgraded Points<br>
+        <a href="https://upgradedpoints.com">upgradedpoints.com</a>
+      </p>
+    </div>
+  `;
+
+  const textContent = `Hey ${firstName},
+
+Just wanted to follow up on your earnings estimate from a few days ago.
+
+I know everyone says they have the "best rates" - so here's the short version of why we're different:
+
+1. 65-70% commission - not 50% like most networks
+2. Direct issuer relationships - Chase, Amex, Capital One, Citi
+3. We actually promote partners - newsletter features, backlinks, co-marketing
+
+No exclusivity, no minimums, no contracts. If it doesn't work out, no hard feelings.
+
+Worth a 15-min call? https://calendly.com/upgradedpoints/partner-chat
+
+Or just reply here - happy to answer any questions.
+
+Luke
+
+--
+Luke R
+Partner Development, Upgraded Points
+https://upgradedpoints.com`;
+
   const { data, error } = await resend.emails.send({
-    from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    from: `Luke R from Upgraded Points <${FROM_EMAIL}>`,
     replyTo: REPLY_TO_EMAIL,
     to: email,
-    subject: 'Quick question about your earnings report',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>${emailStyles}</style>
-      </head>
-      <body>
-        <div class="container">
-          <p>Hi ${firstName},</p>
-
-          <p>Just checking in - did you get a chance to review your earnings report?</p>
-
-          <p>Based on your ${clickRange} monthly clicks, you could be earning <strong>${formatCurrency(earnings.realistic)}/year</strong> with Upgraded Points.</p>
-
-          <p>A few things that make us different:</p>
-
-          <ul>
-            <li><strong>We actually promote our partners</strong> - newsletter features, backlinks, co-branded content</li>
-            <li><strong>65-70% commission</strong> - not 50% like most networks</li>
-            <li><strong>No exclusivity</strong> - work with us alongside whatever else you're doing</li>
-          </ul>
-
-          <p>Happy to jump on a quick call if you have questions:</p>
-
-          <p><a href="https://calendly.com/upgradedpoints/partner-chat" class="cta-button">Book 15 mins →</a></p>
-
-          <p>Or just reply to this email - I read everything.</p>
-
-          <p>Best,<br>The UP Team</p>
-          
-          <div class="footer">
-            <p><a href="{{{unsubscribe}}}">Unsubscribe</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
+    subject: 'Quick follow up',
+    html: htmlContent,
+    text: textContent,
   });
 
   if (error) {
@@ -233,49 +230,66 @@ export async function sendDay7Final({ name, email, clickRange, earnings }: Email
 
   const firstName = getFirstName(name);
 
+  const htmlContent = `
+    <div style="${plainTextStyles}">
+      <p>Hey ${firstName},</p>
+
+      <p>Last email from me on this - promise.</p>
+
+      <p>If you're writing about credit cards or travel rewards, you should be earning from it. We make that easy:</p>
+
+      <p>
+        → You get tracking links<br>
+        → Your readers click and apply<br>
+        → You earn 65-70% of the commission
+      </p>
+
+      <p>Your estimate was around ${formatCurrency(earnings.realistic)}/year based on ${clickRange} clicks.</p>
+
+      <p>If timing isn't right, no worries. But if you want to explore it: <a href="https://partnership-calculator.vercel.app">apply takes 2 mins</a></p>
+
+      <p>Good luck with whatever you're building.</p>
+
+      <p>
+        Luke<br><br>
+        --<br>
+        <strong>Luke R</strong><br>
+        Partner Development, Upgraded Points<br>
+        <a href="https://upgradedpoints.com">upgradedpoints.com</a>
+      </p>
+    </div>
+  `;
+
+  const textContent = `Hey ${firstName},
+
+Last email from me on this - promise.
+
+If you're writing about credit cards or travel rewards, you should be earning from it. We make that easy:
+
+→ You get tracking links
+→ Your readers click and apply
+→ You earn 65-70% of the commission
+
+Your estimate was around ${formatCurrency(earnings.realistic)}/year based on ${clickRange} clicks.
+
+If timing isn't right, no worries. But if you want to explore it: https://partnership-calculator.vercel.app
+
+Good luck with whatever you're building.
+
+Luke
+
+--
+Luke R
+Partner Development, Upgraded Points
+https://upgradedpoints.com`;
+
   const { data, error } = await resend.emails.send({
-    from: `Upgraded Points Partners <${FROM_EMAIL}>`,
+    from: `Luke R from Upgraded Points <${FROM_EMAIL}>`,
     replyTo: REPLY_TO_EMAIL,
     to: email,
-    subject: 'Last thought on the partnership',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>${emailStyles}</style>
-      </head>
-      <body>
-        <div class="container">
-          <p>Hi ${firstName},</p>
-
-          <p>Last note from me on this.</p>
-
-          <p>If you're creating content about credit cards, travel rewards, or points - you should be earning from it.</p>
-
-          <p>We make it easy:</p>
-          <ul>
-            <li>You get tracking links</li>
-            <li>Your audience clicks → applies → gets approved</li>
-            <li>You earn 65-70% of the commission</li>
-          </ul>
-
-          <p>No minimums, no contracts. If it doesn't work, no hard feelings.</p>
-
-          <p>Your estimated potential: <strong>${formatCurrency(earnings.realistic)}/year</strong></p>
-
-          <p><a href="https://partnership-calculator.vercel.app" class="cta-button">Apply Now →</a></p>
-
-          <p>Either way, good luck with what you're building.</p>
-
-          <p>Best,<br>The UP Team</p>
-          
-          <div class="footer">
-            <p><a href="{{{unsubscribe}}}">Unsubscribe</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
+    subject: 'Last note from me',
+    html: htmlContent,
+    text: textContent,
   });
 
   if (error) {
@@ -287,7 +301,7 @@ export async function sendDay7Final({ name, email, clickRange, earnings }: Email
 }
 
 // ============================================
-// HIGH-VALUE LEAD ALERT
+// HIGH-VALUE LEAD ALERT (Internal - stays formatted)
 // ============================================
 export async function sendHighValueAlert(
   name: string | undefined,
@@ -324,6 +338,3 @@ export async function sendHighValueAlert(
 
   return data;
 }
-
-// Re-export the legacy function for backwards compatibility
-export { sendWelcomeEmail as sendWelcomeEmailLegacy } from '../email';
