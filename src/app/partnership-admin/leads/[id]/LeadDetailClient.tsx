@@ -26,6 +26,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { Sidebar, TierBadge, LeadStatusBadge, EngagementIndicator, PriorityBadge } from '@/components/admin';
+import { ComposeEmailModal } from '@/components/admin/ComposeEmailModal';
 import { CalculatorLead, LeadStatus, LeadActivity, EmailSend } from '@/types/database';
 
 interface LeadDetailClientProps {
@@ -105,6 +106,7 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
   const [notes, setNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showComposeModal, setShowComposeModal] = useState(false);
 
   const fetchLead = useCallback(async () => {
     try {
@@ -576,6 +578,16 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
               <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <h3 className="font-medium text-slate-900 mb-4">Quick Actions</h3>
                 <div className="space-y-2">
+                  {/* Send Email Button */}
+                  <button
+                    onClick={() => setShowComposeModal(true)}
+                    disabled={lead.unsubscribed}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm bg-[#0F75BD] text-white rounded-lg hover:bg-[#0a5a94] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="w-4 h-4" />
+                    Send Email
+                  </button>
+
                   <button
                     onClick={handleMarkReplied}
                     className="w-full flex items-center gap-2 px-4 py-2 text-left text-sm border border-slate-200 rounded-lg hover:bg-slate-50"
@@ -617,6 +629,51 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                     <UserX className="w-4 h-4" />
                     Mark as Lost
                   </button>
+                </div>
+              </div>
+
+              {/* Sequence Management */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                <h3 className="font-medium text-slate-900 mb-4">Sequence</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm text-slate-500 mb-1">Current Sequence</label>
+                    <select
+                      value={lead.current_sequence || 'calculator_nurture'}
+                      onChange={async (e) => {
+                        const newSequence = e.target.value;
+                        try {
+                          const response = await fetch(`/api/admin/leads/${lead.id}/sequence`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sequence: newSequence }),
+                          });
+                          if (response.ok) {
+                            fetchLead();
+                            fetchActivities();
+                          }
+                        } catch (error) {
+                          console.error('Failed to change sequence:', error);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0F75BD] focus:border-transparent outline-none"
+                    >
+                      <option value="calculator_nurture">Calculator Nurture</option>
+                      <option value="cold_outreach">Cold Outreach</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Step</span>
+                    <span className="font-medium text-slate-900">{lead.sequence_step || 0}</span>
+                  </div>
+                  {lead.next_email_at && !lead.paused && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-500">Next Email</span>
+                      <span className="text-slate-900">
+                        {new Date(lead.next_email_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -662,6 +719,26 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
           </div>
         </main>
       </div>
+
+      {/* Compose Email Modal */}
+      <ComposeEmailModal
+        isOpen={showComposeModal}
+        onClose={() => setShowComposeModal(false)}
+        lead={{
+          id: lead.id,
+          email: lead.email,
+          name: lead.name,
+          channel_name: lead.channel_name,
+          projected_monthly_earnings: lead.projected_monthly_earnings,
+          projected_annual_earnings: lead.projected_annual_earnings || lead.earnings_realistic,
+          monthly_visitors: lead.monthly_visitors,
+          click_rate: lead.click_rate,
+        }}
+        onSent={() => {
+          fetchEmails();
+          fetchActivities();
+        }}
+      />
     </div>
   );
 }

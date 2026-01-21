@@ -7,6 +7,8 @@ import {
   Users,
   Flame,
   Mail,
+  Upload,
+  Workflow,
   Settings,
   LogOut,
   X,
@@ -22,7 +24,9 @@ const navItems = [
   { href: '/partnership-admin', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/partnership-admin/leads', icon: Users, label: 'All Leads' },
   { href: '/partnership-admin/leads?filter=hot', icon: Flame, label: 'Hot Prospects' },
+  { href: '/partnership-admin/sequences', icon: Workflow, label: 'Sequences' },
   { href: '/partnership-admin/templates', icon: Mail, label: 'Email Templates' },
+  { href: '/partnership-admin/import', icon: Upload, label: 'Import Prospects' },
   { href: '/partnership-admin/settings', icon: Settings, label: 'Settings' },
 ];
 

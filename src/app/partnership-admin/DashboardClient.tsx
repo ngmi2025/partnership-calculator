@@ -14,6 +14,9 @@ import {
   MousePointerClick,
   UserCheck,
   RefreshCw,
+  AlertTriangle,
+  MessageSquare,
+  AlertCircle,
 } from 'lucide-react';
 import { Sidebar, StatCard, TierBadge, PriorityBadge, EngagementIndicator } from '@/components/admin';
 import { EarningsTier, Priority, LeadStatus } from '@/types/database';
@@ -55,6 +58,18 @@ interface Activity {
     name: string | null;
     email: string;
   } | null;
+}
+
+interface NeedsAttentionItem {
+  id: string;
+  type: 'replied' | 'hot_lead' | 'bounced';
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  subtitle: string;
+  timestamp: string;
+  action: string;
+  actionType: string;
+  actionPayload: Record<string, unknown>;
 }
 
 interface DashboardClientProps {
@@ -100,16 +115,18 @@ export function DashboardClient({ userName }: DashboardClientProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [hotLeads, setHotLeads] = useState<HotLead[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [needsAttention, setNeedsAttention] = useState<NeedsAttentionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [statsRes, leadsRes, activityRes] = await Promise.all([
+        const [statsRes, leadsRes, activityRes, attentionRes] = await Promise.all([
           fetch('/api/admin/stats'),
           fetch('/api/admin/hot-leads'),
           fetch('/api/admin/activity'),
+          fetch('/api/admin/needs-attention'),
         ]);
 
         if (statsRes.ok) {
@@ -125,6 +142,11 @@ export function DashboardClient({ userName }: DashboardClientProps) {
         if (activityRes.ok) {
           const activityData = await activityRes.json();
           setActivities(activityData.activities || []);
+        }
+
+        if (attentionRes.ok) {
+          const attentionData = await attentionRes.json();
+          setNeedsAttention(attentionData.items || []);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -198,6 +220,60 @@ export function DashboardClient({ userName }: DashboardClientProps) {
                   color="green"
                 />
               </div>
+
+              {/* Needs Attention Banner */}
+              {needsAttention.length > 0 && (
+                <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-amber-200 flex items-center justify-between bg-amber-100/50">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      <h2 className="font-semibold text-amber-900">Needs Attention</h2>
+                      <span className="px-2 py-0.5 bg-amber-200 text-amber-800 text-xs font-medium rounded-full">
+                        {needsAttention.length}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-amber-100">
+                    {needsAttention.slice(0, 5).map((item) => {
+                      const icons = {
+                        replied: MessageSquare,
+                        hot_lead: Flame,
+                        bounced: AlertCircle,
+                      };
+                      const Icon = icons[item.type] || AlertTriangle;
+                      const colors = {
+                        high: 'text-red-600 bg-red-100',
+                        medium: 'text-amber-600 bg-amber-100',
+                        low: 'text-slate-600 bg-slate-100',
+                      };
+
+                      return (
+                        <Link
+                          key={`${item.type}-${item.id}`}
+                          href={`/partnership-admin/leads/${item.id}`}
+                          className="flex items-center justify-between px-6 py-3 hover:bg-amber-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${colors[item.priority]}`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{item.title}</p>
+                              <p className="text-sm text-slate-500">{item.subtitle}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-500">
+                              {formatRelativeTime(item.timestamp)}
+                            </span>
+                            <ArrowRight className="w-4 h-4 text-slate-400" />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Hot Leads Panel */}

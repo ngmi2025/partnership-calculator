@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Menu,
   ArrowLeft,
   Save,
   Eye,
   Check,
+  Send,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Sidebar } from '@/components/admin';
+import { EmailPreview, SampleDataEditor, DEFAULT_SAMPLE, SampleData } from '@/components/admin/EmailPreview';
 import { EmailTemplate } from '@/types/database';
 
 interface TemplateEditorClientProps {
@@ -18,41 +21,16 @@ interface TemplateEditorClientProps {
   userName: string;
 }
 
-const sampleData = {
-  first_name: 'John',
-  name: 'John Smith',
-  email: 'john@example.com',
-  channel_name: 'TravelHacks',
-  website_url: 'https://travelhacks.com',
-  click_range: '2,000-5,000',
-  earnings_conservative: '$12,500',
-  earnings_realistic: '$25,000',
-  earnings_optimistic: '$50,000',
-  monthly_visitors: '50,000',
-};
-
-function replaceVariables(text: string): string {
-  let result = text;
-  Object.entries(sampleData).forEach(([key, value]) => {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-  });
-  return result;
-}
-
 const variableChips = [
-  '{{first_name}}',
-  '{{name}}',
-  '{{channel_name}}',
-  '{{website_url}}',
-  '{{click_range}}',
-  '{{earnings_conservative}}',
-  '{{earnings_realistic}}',
-  '{{earnings_optimistic}}',
-  '{{monthly_visitors}}',
+  { key: '{{name}}', label: 'Name' },
+  { key: '{{channel_name}}', label: 'Channel' },
+  { key: '{{projected_monthly_earnings}}', label: 'Monthly $' },
+  { key: '{{projected_annual_earnings}}', label: 'Annual $' },
+  { key: '{{monthly_visitors}}', label: 'Visitors' },
+  { key: '{{click_rate}}', label: 'Click %' },
 ];
 
 export function TemplateEditorClient({ templateId, userName }: TemplateEditorClientProps) {
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [template, setTemplate] = useState<EmailTemplate | null>(null);
   const [subject, setSubject] = useState('');
@@ -61,8 +39,11 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
   const [active, setActive] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [sampleData, setSampleData] = useState<SampleData>(DEFAULT_SAMPLE);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testEmailStatus, setTestEmailStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchTemplate() {
@@ -106,6 +87,33 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
     }
   };
 
+  const handleSendTestEmail = async () => {
+    setIsSendingTest(true);
+    setTestEmailStatus(null);
+
+    try {
+      const response = await fetch('/api/admin/templates/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body, sampleData }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setTestEmailStatus({ type: 'success', message: data.message });
+      } else {
+        setTestEmailStatus({ type: 'error', message: data.error || 'Failed to send test email' });
+      }
+    } catch (error) {
+      setTestEmailStatus({ type: 'error', message: 'Failed to send test email' });
+    } finally {
+      setIsSendingTest(false);
+      // Clear status after 5 seconds
+      setTimeout(() => setTestEmailStatus(null), 5000);
+    }
+  };
+
   const insertVariable = (variable: string) => {
     const textarea = document.getElementById('body-textarea') as HTMLTextAreaElement;
     if (textarea) {
@@ -113,7 +121,6 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
       const end = textarea.selectionEnd;
       const newBody = body.substring(0, start) + variable + body.substring(end);
       setBody(newBody);
-      // Set cursor position after inserted text
       setTimeout(() => {
         textarea.selectionStart = textarea.selectionEnd = start + variable.length;
         textarea.focus();
@@ -125,7 +132,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
     return (
       <div className="flex h-screen">
         <Sidebar userName={userName} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center bg-slate-50">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F75BD]"></div>
         </div>
       </div>
@@ -136,7 +143,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
     return (
       <div className="flex h-screen">
         <Sidebar userName={userName} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center bg-slate-50">
           <p className="text-slate-500">Template not found</p>
         </div>
       </div>
@@ -144,7 +151,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-slate-50">
       <Sidebar userName={userName} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 overflow-auto">
@@ -167,7 +174,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
               <div>
                 <h1 className="text-xl font-semibold text-slate-900">Edit Template</h1>
                 <p className="text-sm text-slate-500">
-                  {template.sequence} - Step {template.step}
+                  {template.sequence === 'calculator_nurture' ? 'Calculator Nurture' : 'Cold Outreach'} — Step {template.step}
                 </p>
               </div>
             </div>
@@ -185,9 +192,26 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
                 Preview
               </button>
               <button
+                onClick={handleSendTestEmail}
+                disabled={isSendingTest}
+                className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-sm"
+              >
+                {isSendingTest ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send Test
+                  </>
+                )}
+              </button>
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0F75BD] text-white rounded-lg hover:bg-[#0a5a94] disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#0F75BD] text-white rounded-lg hover:bg-[#0a5a94] disabled:opacity-50 text-sm"
               >
                 {saved ? (
                   <>
@@ -203,18 +227,37 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
               </button>
             </div>
           </div>
+
+          {/* Test Email Status */}
+          {testEmailStatus && (
+            <div
+              className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg text-sm ${
+                testEmailStatus.type === 'success'
+                  ? 'bg-green-50 text-green-700'
+                  : 'bg-red-50 text-red-700'
+              }`}
+            >
+              {testEmailStatus.type === 'success' ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                <AlertCircle className="w-4 h-4" />
+              )}
+              {testEmailStatus.message}
+            </div>
+          )}
         </header>
 
         <main className="p-6">
-          <div className={`grid gap-6 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Editor */}
+          <div className={`grid gap-6 ${showPreview ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1 max-w-3xl'}`}>
+            {/* Editor Column */}
             <div className="space-y-6">
               {/* Settings Row */}
               <div className="bg-white rounded-xl border border-slate-200 p-6">
+                <h3 className="text-sm font-semibold text-slate-900 mb-4">Settings</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Delay (days after previous)
+                      Delay (days)
                     </label>
                     <input
                       type="number"
@@ -240,7 +283,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      {active ? 'Active' : 'Inactive'}
+                      {active ? '✓ Active' : 'Inactive'}
                     </button>
                   </div>
                 </div>
@@ -248,7 +291,7 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
 
               {/* Subject */}
               <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
                   Subject Line
                 </label>
                 <input
@@ -262,19 +305,20 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
 
               {/* Body */}
               <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-900 mb-2">
                   Email Body
                 </label>
 
                 {/* Variable Chips */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {variableChips.map((variable) => (
+                  <span className="text-xs text-slate-500 mr-1 self-center">Insert:</span>
+                  {variableChips.map((chip) => (
                     <button
-                      key={variable}
-                      onClick={() => insertVariable(variable)}
-                      className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 rounded transition-colors"
+                      key={chip.key}
+                      onClick={() => insertVariable(chip.key)}
+                      className="px-2.5 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full transition-colors font-medium"
                     >
-                      {variable}
+                      {chip.label}
                     </button>
                   ))}
                 </div>
@@ -287,33 +331,26 @@ export function TemplateEditorClient({ templateId, userName }: TemplateEditorCli
                   className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0F75BD] focus:border-transparent outline-none font-mono text-sm resize-none"
                   placeholder="Email body..."
                 />
+                
+                <p className="text-xs text-slate-500 mt-2">
+                  Use **text** for bold. Variables like {"{{name}}"} will be replaced with lead data.
+                </p>
               </div>
             </div>
 
-            {/* Preview */}
+            {/* Preview Column */}
             {showPreview && (
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h3 className="text-sm font-medium text-slate-700 mb-4">Preview (with sample data)</h3>
-
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  {/* Email Header */}
-                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                    <p className="text-xs text-slate-500">From: Luke R &lt;partnerships@upgradedpoints.com&gt;</p>
-                    <p className="text-xs text-slate-500">To: {sampleData.email}</p>
-                    <p className="text-sm font-medium text-slate-900 mt-1">
-                      {replaceVariables(subject)}
-                    </p>
-                  </div>
-
-                  {/* Email Body */}
-                  <div className="p-4 whitespace-pre-wrap text-sm text-slate-700 font-mono">
-                    {replaceVariables(body)}
-                  </div>
+              <div className="space-y-6">
+                {/* Sample Data Editor */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <SampleDataEditor sampleData={sampleData} onChange={setSampleData} />
                 </div>
 
-                <p className="text-xs text-slate-500 mt-4">
-                  This preview uses sample data to show how variables will be replaced.
-                </p>
+                {/* Email Preview */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-4">Email Preview</h3>
+                  <EmailPreview subject={subject} body={body} sampleData={sampleData} />
+                </div>
               </div>
             )}
           </div>

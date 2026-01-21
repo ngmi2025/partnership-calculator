@@ -67,7 +67,13 @@ CREATE TABLE IF NOT EXISTS calculator_leads (
   replied_at TIMESTAMPTZ,
   
   -- Channels (array of strings)
-  channels TEXT[]
+  channels TEXT[],
+  
+  -- Import tracking (for manually imported leads)
+  import_source TEXT, -- 'manual_import', 'spreadsheet', 'single', etc.
+  imported_at TIMESTAMPTZ,
+  imported_by UUID REFERENCES admin_users(id),
+  subscriber_count TEXT -- Store as text: "1.2M", "50K", etc.
 );
 
 -- ============================================
@@ -152,6 +158,40 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 
 -- ============================================
+-- 7. EMAIL SNIPPETS - Reusable email snippets
+-- ============================================
+CREATE TABLE IF NOT EXISTS email_snippets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================
+-- 8. SEQUENCE SETTINGS - Email sequence configuration
+-- ============================================
+CREATE TABLE IF NOT EXISTS sequence_settings (
+  sequence_name TEXT PRIMARY KEY,
+  paused BOOLEAN DEFAULT false,
+  send_window_start TIME DEFAULT '09:00',
+  send_window_end TIME DEFAULT '17:00',
+  send_timezone TEXT DEFAULT 'America/New_York',
+  daily_limit INT DEFAULT 100,
+  skip_weekends BOOLEAN DEFAULT true,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Seed default sequence settings
+INSERT INTO sequence_settings (sequence_name, daily_limit) 
+VALUES ('calculator_nurture', 100)
+ON CONFLICT (sequence_name) DO NOTHING;
+
+INSERT INTO sequence_settings (sequence_name, daily_limit) 
+VALUES ('cold_outreach', 50)
+ON CONFLICT (sequence_name) DO NOTHING;
+
+-- ============================================
 -- INDEXES
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_leads_email ON calculator_leads(email);
@@ -171,6 +211,11 @@ CREATE INDEX IF NOT EXISTS idx_lead_activity_created ON lead_activity(created_at
 
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON admin_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_admin ON admin_sessions(admin_id);
+
+CREATE INDEX IF NOT EXISTS idx_snippets_admin ON email_snippets(admin_id);
+
+CREATE INDEX IF NOT EXISTS idx_leads_import_source ON calculator_leads(import_source);
+CREATE INDEX IF NOT EXISTS idx_leads_imported_by ON calculator_leads(imported_by);
 
 -- ============================================
 -- VIEWS

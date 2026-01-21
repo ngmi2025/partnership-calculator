@@ -1,0 +1,22 @@
+import { requireSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { supabaseAdmin } from '@/lib/supabase/server';
+import { QueuePageClient } from './QueuePageClient';
+
+export default async function QueuePage() {
+  const session = await requireSession();
+  
+  if (!session) {
+    redirect('/partnership-admin/login');
+  }
+
+  const { data: admin } = await supabaseAdmin
+    .from('admin_users')
+    .select('name')
+    .eq('id', session.adminId)
+    .single();
+
+  const userName = (admin as any)?.name || 'Admin';
+
+  return <QueuePageClient userName={userName} />;
+}
