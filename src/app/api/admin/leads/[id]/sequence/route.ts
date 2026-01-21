@@ -65,7 +65,7 @@ export async function POST(
         metadata: {
           from_sequence: oldSequence,
           to_sequence: sequence,
-          changed_by: session.adminId,
+          changed_by: session.admin_id,
         },
       });
 

@@ -13,7 +13,7 @@ export default async function SequencesPage() {
   const { data: admin } = await supabaseAdmin
     .from('admin_users')
     .select('name')
-    .eq('id', session.adminId)
+    .eq('id', session.admin_id)
     .single();
 
   const userName = (admin as any)?.name || 'Admin';

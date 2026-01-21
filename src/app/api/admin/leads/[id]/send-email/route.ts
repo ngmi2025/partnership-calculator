@@ -187,7 +187,7 @@ ${unsubscribeUrl}`;
             manual: true,
             subject: finalSubject,
             resend_id: emailData?.id,
-            sent_by: session.adminId,
+            sent_by: session.admin_id,
           },
         });
     } catch (err) {

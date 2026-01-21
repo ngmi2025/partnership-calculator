@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { data: admin } = await supabaseAdmin
       .from('admin_users')
       .select('email, name')
-      .eq('id', session.adminId)
+      .eq('id', session.admin_id)
       .single();
 
     if (!admin) {

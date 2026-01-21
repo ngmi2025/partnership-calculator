@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       lead_source: 'manual_import',
       import_source: 'single',
       imported_at: new Date().toISOString(),
-      imported_by: session.adminId,
+      imported_by: session.admin_id,
       
       // Lead management defaults
       status: 'new',
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         activity_type: 'lead_imported',
         metadata: {
           import_source: 'single',
-          imported_by: session.adminId,
+          imported_by: session.admin_id,
           sequence: body.sequence || 'cold_outreach',
         },
       });
