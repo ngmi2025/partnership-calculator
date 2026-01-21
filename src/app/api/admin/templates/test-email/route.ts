@@ -49,12 +49,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get admin email
-    const { data: admin } = await supabaseAdmin
+    const { data: adminData } = await (supabaseAdmin as any)
       .from('admin_users')
       .select('email, name')
       .eq('id', session.admin_id)
       .single();
 
+    const admin = adminData as { email: string; name: string | null } | null;
     if (!admin) {
       return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
     }

@@ -48,7 +48,18 @@ export async function GET(request: NextRequest) {
       .order('bounced_at', { ascending: false })
       .limit(5);
 
-    const needsAttention = [];
+    interface AttentionItem {
+      id: string;
+      type: string;
+      priority: string;
+      title: string;
+      subtitle: string;
+      timestamp: string;
+      action: string;
+      actionType: string;
+      actionPayload: Record<string, unknown>;
+    }
+    const needsAttention: AttentionItem[] = [];
 
     // Format replied leads
     if (repliedLeads && repliedLeads.length > 0) {
