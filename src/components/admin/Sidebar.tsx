@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   X,
+  PenSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/partnership-admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/partnership-admin/compose', icon: PenSquare, label: 'Compose Email' },
   { href: '/partnership-admin/leads', icon: Users, label: 'All Leads' },
   { href: '/partnership-admin/leads?filter=hot', icon: Flame, label: 'Hot Prospects' },
   { href: '/partnership-admin/sequences', icon: Workflow, label: 'Sequences' },
