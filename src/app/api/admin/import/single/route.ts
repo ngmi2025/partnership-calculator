@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const { data: existingLead } = await supabaseAdmin
+    const { data: existingLead } = await (supabaseAdmin as any)
       .from('calculator_leads')
       .select('id, email')
       .eq('email', body.email.toLowerCase())
@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
 
     if (existingLead) {
       return NextResponse.json(
-        { error: 'A lead with this email already exists', existingId: existingLead.id },
+        { error: 'A lead with this email already exists', existingId: (existingLead as any).id },
         { status: 409 }
       );
     }
 
     // Also check legacy leads table
-    const { data: legacyLead } = await supabaseAdmin
+    const { data: legacyLead } = await (supabaseAdmin as any)
       .from('leads')
       .select('id, email')
       .eq('email', body.email.toLowerCase())
