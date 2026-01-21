@@ -1,10 +1,10 @@
-import { requireSession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { ImportPageClient } from './ImportPageClient';
 
 export default async function ImportPage() {
-  const session = await requireSession();
+  const session = await requireAdmin();
   
   if (!session) {
     redirect('/partnership-admin/login');

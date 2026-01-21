@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 interface LeadRow {
@@ -25,7 +25,7 @@ interface ImportError {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireSession();
+    const session = await requireAdmin();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
 // Endpoint to check for duplicates before import
 export async function PUT(request: NextRequest) {
   try {
-    const session = await requireSession();
+    const session = await requireAdmin();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

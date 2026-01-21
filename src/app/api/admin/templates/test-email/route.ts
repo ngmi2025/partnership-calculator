@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 // Lazy-load Resend to avoid build errors if not configured
@@ -43,7 +43,7 @@ function replaceVariables(text: string, data: SampleData): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireSession();
+    const session = await requireAdmin();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

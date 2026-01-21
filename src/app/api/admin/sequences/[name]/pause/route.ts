@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSession } from '@/lib/auth';
+import { requireAdmin } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 
 // POST - Pause all leads in sequence
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ name: string }> }
 ) {
   try {
-    const session = await requireSession();
+    const session = await requireAdmin();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

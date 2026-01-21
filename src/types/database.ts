@@ -5,6 +5,8 @@ export type LeadStatus =
   | 'new'
   | 'nurturing'
   | 'engaged'
+  | 'applied'           // Submitted partner application
+  | 'call_scheduled'    // Booked a call via Calendly
   | 'qualified'
   | 'in_conversation'
   | 'signed'
@@ -12,13 +14,23 @@ export type LeadStatus =
 
 export type EarningsTier = 'starter' | 'growth' | 'scale' | 'enterprise';
 
+export type PartnerTier = 'platinum' | 'gold' | 'silver' | 'bronze';
+
+export type HighIntentAction =
+  | 'partner_application'
+  | 'call_booked'
+  | 'signup_clicked'
+  | 'replied';
+
 export type PausedReason =
   | 'replied'
   | 'manual'
   | 'unsubscribed'
   | 'no_consent'
   | 'signed'
-  | 'bounced';
+  | 'bounced'
+  | 'applied'
+  | 'call_scheduled';
 
 export type Priority = 'hot' | 'high' | 'medium' | 'standard' | 'low';
 
@@ -32,7 +44,18 @@ export type ActivityType =
   | 'unsubscribed'
   | 'partner_signed'
   | 'application_submitted'
-  | 'contacted';
+  | 'contacted'
+  | 'lead_imported'
+  | 'sequence_changed'
+  | 'partner_application'
+  | 'call_booked'
+  | 'call_cancelled'
+  | 'signup_clicked'
+  | 'replied'
+  | 'meeting_completed'
+  | 'tag_added'
+  | 'tag_removed'
+  | 'bulk_action';
 
 export interface CalculatorLead {
   id: string;
