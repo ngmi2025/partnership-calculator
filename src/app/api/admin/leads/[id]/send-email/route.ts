@@ -132,8 +132,7 @@ export async function POST(
     const finalBody = replaceVariables(body, lead);
 
     // Generate unsubscribe URL
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://partnership-calculator.vercel.app';
-    const unsubscribeUrl = generateUnsubscribeUrl(lead.id, siteUrl);
+    const unsubscribeUrl = generateUnsubscribeUrl(lead.id);
 
     // Build full email body with signature and unsubscribe
     const fullBody = `${finalBody}${SIGNATURE}
