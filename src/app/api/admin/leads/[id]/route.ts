@@ -114,12 +114,31 @@ export async function PATCH(
     // Allowed fields to update
     const allowedFields = [
       'name',
+      'channel_name',
       'status',
       'notes',
       'marketing_consent',
       'paused',
       'paused_reason',
       'engagement_score',
+      // Social & Channel Links
+      'linkedin_url',
+      'youtube_url',
+      'twitter_handle',
+      'website_url',
+      // Prospect Context
+      'subscribers',
+      'content_niche',
+      'lead_source',
+      // Engagement Tracking
+      'last_contacted_at',
+      'last_replied_at',
+      'call_scheduled_at',
+      'email_opens',
+      'email_clicks',
+      // Follow-up
+      'next_action',
+      'next_followup_at',
     ];
 
     const filteredUpdates = Object.fromEntries(

@@ -24,6 +24,10 @@ import {
   Users,
   FileText,
   Activity,
+  Linkedin,
+  Youtube,
+  Twitter,
+  Eye,
 } from 'lucide-react';
 import { Sidebar, TierBadge, LeadStatusBadge, EngagementIndicator, PriorityBadge } from '@/components/admin';
 import { ComposeEmailModal } from '@/components/admin/ComposeEmailModal';
@@ -32,6 +36,22 @@ import { CalculatorLead, LeadStatus, LeadActivity, EmailSend } from '@/types/dat
 interface LeadDetailClientProps {
   leadId: string;
   userName: string;
+}
+
+// Extended lead type with new fields
+interface ExtendedLead extends CalculatorLead {
+  linkedin_url?: string | null;
+  youtube_url?: string | null;
+  twitter_handle?: string | null;
+  subscribers?: number | null;
+  content_niche?: string | null;
+  last_contacted_at?: string | null;
+  last_replied_at?: string | null;
+  call_scheduled_at?: string | null;
+  next_followup_at?: string | null;
+  next_action?: string | null;
+  email_opens?: number;
+  email_clicks?: number;
 }
 
 const formatCurrency = (amount: number | null) =>
@@ -55,6 +75,14 @@ const formatDate = (dateString: string | null) =>
       })
     : '-';
 
+const formatShortDate = (dateString: string | null) =>
+  dateString
+    ? new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Never';
+
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -75,6 +103,8 @@ const statusOptions: LeadStatus[] = [
   'new',
   'nurturing',
   'engaged',
+  'applied',
+  'call_scheduled',
   'qualified',
   'in_conversation',
   'signed',
@@ -93,12 +123,37 @@ const activityIcons: Record<string, typeof Mail> = {
   unsubscribed: UserX,
 };
 
+const contentNiches = [
+  'Travel Rewards',
+  'Credit Cards',
+  'Points & Miles',
+  'Budget Travel',
+  'Luxury Travel',
+  'Personal Finance',
+  'Flight Deals',
+  'Hotel Reviews',
+  'Other',
+];
+
+const leadSources = [
+  'calculator',
+  'manual_research',
+  'modash',
+  'feedspot',
+  'izea',
+  'referral',
+  'inbound',
+  'csv_import',
+  'manual_import',
+  'other',
+];
+
 type Tab = 'overview' | 'emails' | 'activity' | 'notes';
 
 export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [lead, setLead] = useState<CalculatorLead | null>(null);
+  const [lead, setLead] = useState<ExtendedLead | null>(null);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
   const [emails, setEmails] = useState<EmailSend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,6 +162,7 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showComposeModal, setShowComposeModal] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
 
   const fetchLead = useCallback(async () => {
     try {
@@ -152,7 +208,7 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
     });
   }, [fetchLead, fetchActivities, fetchEmails]);
 
-  const updateLead = async (updates: Partial<CalculatorLead>) => {
+  const updateLead = async (updates: Partial<ExtendedLead>) => {
     try {
       const response = await fetch(`/api/admin/leads/${leadId}`, {
         method: 'PATCH',
@@ -162,11 +218,16 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
       if (response.ok) {
         const data = await response.json();
         setLead(data.lead);
-        fetchActivities(); // Refresh activity after update
+        fetchActivities();
       }
     } catch (error) {
       console.error('Failed to update lead:', error);
     }
+  };
+
+  const handleFieldUpdate = async (field: string, value: unknown) => {
+    setEditingField(null);
+    await updateLead({ [field]: value } as Partial<ExtendedLead>);
   };
 
   const handleStatusChange = async (newStatus: LeadStatus) => {
@@ -187,7 +248,8 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
       paused: true,
       paused_reason: 'replied',
       engagement_score: (lead?.engagement_score || 0) + 10,
-    } as Partial<CalculatorLead>);
+      last_replied_at: new Date().toISOString(),
+    } as Partial<ExtendedLead>);
     await fetch(`/api/admin/leads/${leadId}/activity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -203,14 +265,14 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
     await updateLead({
       paused: true,
       paused_reason: 'manual',
-    } as Partial<CalculatorLead>);
+    } as Partial<ExtendedLead>);
   };
 
   const handleResumeSequence = async () => {
     await updateLead({
       paused: false,
       paused_reason: null,
-    } as Partial<CalculatorLead>);
+    } as Partial<ExtendedLead>);
   };
 
   const handleMarkSigned = async () => {
@@ -218,7 +280,7 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
       status: 'signed',
       paused: true,
       paused_reason: 'signed',
-    } as Partial<CalculatorLead>);
+    } as Partial<ExtendedLead>);
     await fetch(`/api/admin/leads/${leadId}/activity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -367,6 +429,7 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                   {/* Overview Tab */}
                   {activeTab === 'overview' && (
                     <div className="space-y-6">
+                      {/* Contact Info */}
                       <div>
                         <h3 className="text-sm font-medium text-slate-500 mb-3">Contact Info</h3>
                         <div className="space-y-3">
@@ -382,67 +445,289 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                               <span className="text-slate-900">{lead.phone}</span>
                             </div>
                           )}
-                          {lead.website_url && (
+                          {lead.channel_name && (
                             <div className="flex items-center gap-3">
-                              <Globe className="w-5 h-5 text-slate-400" />
+                              <Users className="w-5 h-5 text-slate-400" />
+                              <span className="text-slate-900">{lead.channel_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Social & Channel Links */}
+                      <div>
+                        <h3 className="text-sm font-medium text-slate-500 mb-3">Social & Channel Links</h3>
+                        <div className="space-y-3">
+                          {/* LinkedIn */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-[#0A66C2] rounded flex items-center justify-center flex-shrink-0">
+                              <Linkedin className="w-4 h-4 text-white" />
+                            </div>
+                            {editingField === 'linkedin_url' ? (
+                              <input
+                                type="url"
+                                defaultValue={lead.linkedin_url || ''}
+                                onBlur={(e) => handleFieldUpdate('linkedin_url', e.target.value || null)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                placeholder="https://linkedin.com/in/..."
+                                autoFocus
+                              />
+                            ) : lead.linkedin_url ? (
+                              <a
+                                href={lead.linkedin_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0F75BD] hover:underline truncate flex-1"
+                              >
+                                {lead.linkedin_url.replace('https://www.linkedin.com/in/', '').replace('https://linkedin.com/in/', '').replace('/', '')}
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => setEditingField('linkedin_url')}
+                                className="text-slate-400 hover:text-slate-600 text-sm"
+                              >
+                                + Add LinkedIn
+                              </button>
+                            )}
+                          </div>
+
+                          {/* YouTube */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-[#FF0000] rounded flex items-center justify-center flex-shrink-0">
+                              <Youtube className="w-4 h-4 text-white" />
+                            </div>
+                            {editingField === 'youtube_url' ? (
+                              <input
+                                type="url"
+                                defaultValue={lead.youtube_url || ''}
+                                onBlur={(e) => handleFieldUpdate('youtube_url', e.target.value || null)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                placeholder="https://youtube.com/@..."
+                                autoFocus
+                              />
+                            ) : lead.youtube_url ? (
+                              <a
+                                href={lead.youtube_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0F75BD] hover:underline truncate flex-1"
+                              >
+                                {lead.youtube_url.replace('https://www.youtube.com/', '').replace('https://youtube.com/', '')}
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => setEditingField('youtube_url')}
+                                className="text-slate-400 hover:text-slate-600 text-sm"
+                              >
+                                + Add YouTube
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Twitter/X */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-black rounded flex items-center justify-center flex-shrink-0">
+                              <Twitter className="w-4 h-4 text-white" />
+                            </div>
+                            {editingField === 'twitter_handle' ? (
+                              <input
+                                type="text"
+                                defaultValue={lead.twitter_handle || ''}
+                                onBlur={(e) => handleFieldUpdate('twitter_handle', e.target.value || null)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                placeholder="@username"
+                                autoFocus
+                              />
+                            ) : lead.twitter_handle ? (
+                              <a
+                                href={`https://twitter.com/${lead.twitter_handle.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0F75BD] hover:underline"
+                              >
+                                @{lead.twitter_handle.replace('@', '')}
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => setEditingField('twitter_handle')}
+                                className="text-slate-400 hover:text-slate-600 text-sm"
+                              >
+                                + Add Twitter/X
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Website */}
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-slate-500 rounded flex items-center justify-center flex-shrink-0">
+                              <Globe className="w-4 h-4 text-white" />
+                            </div>
+                            {editingField === 'website_url' ? (
+                              <input
+                                type="url"
+                                defaultValue={lead.website_url || ''}
+                                onBlur={(e) => handleFieldUpdate('website_url', e.target.value || null)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                placeholder="https://example.com"
+                                autoFocus
+                              />
+                            ) : lead.website_url ? (
                               <a
                                 href={lead.website_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[#0F75BD] hover:underline flex items-center gap-1"
+                                className="text-[#0F75BD] hover:underline truncate flex-1 flex items-center gap-1"
                               >
-                                {lead.channel_name || lead.website_url}
+                                {lead.website_url.replace('https://', '').replace('http://', '').replace('www.', '')}
                                 <ExternalLink className="w-3 h-3" />
                               </a>
-                            </div>
-                          )}
+                            ) : (
+                              <button
+                                onClick={() => setEditingField('website_url')}
+                                className="text-slate-400 hover:text-slate-600 text-sm"
+                              >
+                                + Add Website
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
+                      {/* Prospect Context */}
                       <div>
-                        <h3 className="text-sm font-medium text-slate-500 mb-3">Calculator Data</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          {lead.projected_monthly_clicks && (
-                            <div>
-                              <p className="text-xs text-slate-400">Monthly Clicks</p>
-                              <p className="text-slate-900 font-medium">
-                                {lead.projected_monthly_clicks.toLocaleString()}
+                        <h3 className="text-sm font-medium text-slate-500 mb-3">Prospect Context</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                          {/* Subscribers */}
+                          <div>
+                            <label className="text-xs text-slate-400">Subscribers</label>
+                            {editingField === 'subscribers' ? (
+                              <input
+                                type="text"
+                                defaultValue={lead.subscribers?.toLocaleString() || ''}
+                                onBlur={(e) => handleFieldUpdate('subscribers', parseInt(e.target.value.replace(/[^0-9]/g, '')) || null)}
+                                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                                className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                placeholder="e.g., 50000"
+                                autoFocus
+                              />
+                            ) : (
+                              <p
+                                className="font-medium cursor-pointer hover:text-[#0F75BD]"
+                                onClick={() => setEditingField('subscribers')}
+                              >
+                                {lead.subscribers ? lead.subscribers.toLocaleString() : <span className="text-slate-400">+ Add</span>}
                               </p>
-                            </div>
-                          )}
-                          {lead.click_range_id && (
-                            <div>
-                              <p className="text-xs text-slate-400">Click Range</p>
-                              <p className="text-slate-900 font-medium">{lead.click_range_id}</p>
-                            </div>
-                          )}
-                          {lead.earnings_conservative && (
-                            <div>
-                              <p className="text-xs text-slate-400">Conservative</p>
-                              <p className="text-slate-900 font-medium">
-                                {formatCurrency(lead.earnings_conservative)}/yr
+                            )}
+                          </div>
+
+                          {/* Content Niche */}
+                          <div>
+                            <label className="text-xs text-slate-400">Niche</label>
+                            {editingField === 'content_niche' ? (
+                              <select
+                                defaultValue={lead.content_niche || ''}
+                                onChange={(e) => handleFieldUpdate('content_niche', e.target.value || null)}
+                                onBlur={() => setEditingField(null)}
+                                className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                autoFocus
+                              >
+                                <option value="">Select...</option>
+                                {contentNiches.map((niche) => (
+                                  <option key={niche} value={niche}>{niche}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <p
+                                className="font-medium cursor-pointer hover:text-[#0F75BD]"
+                                onClick={() => setEditingField('content_niche')}
+                              >
+                                {lead.content_niche || <span className="text-slate-400">+ Add</span>}
                               </p>
-                            </div>
-                          )}
-                          {lead.earnings_realistic && (
-                            <div>
-                              <p className="text-xs text-slate-400">Realistic</p>
-                              <p className="text-slate-900 font-medium">
-                                {formatCurrency(lead.earnings_realistic)}/yr
+                            )}
+                          </div>
+
+                          {/* Lead Source */}
+                          <div>
+                            <label className="text-xs text-slate-400">Source</label>
+                            {editingField === 'lead_source' ? (
+                              <select
+                                defaultValue={lead.lead_source || ''}
+                                onChange={(e) => handleFieldUpdate('lead_source', e.target.value || null)}
+                                onBlur={() => setEditingField(null)}
+                                className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-[#0F75BD]"
+                                autoFocus
+                              >
+                                <option value="">Select...</option>
+                                {leadSources.map((source) => (
+                                  <option key={source} value={source}>
+                                    {source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <p
+                                className="font-medium cursor-pointer hover:text-[#0F75BD]"
+                                onClick={() => setEditingField('lead_source')}
+                              >
+                                {lead.lead_source ? lead.lead_source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : <span className="text-slate-400">+ Add</span>}
                               </p>
-                            </div>
-                          )}
-                          {lead.earnings_optimistic && (
-                            <div>
-                              <p className="text-xs text-slate-400">Optimistic</p>
-                              <p className="text-slate-900 font-medium">
-                                {formatCurrency(lead.earnings_optimistic)}/yr
-                              </p>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
 
+                      {/* Calculator Data */}
+                      {(lead.projected_monthly_clicks || lead.click_range_id || lead.earnings_conservative) && (
+                        <div>
+                          <h3 className="text-sm font-medium text-slate-500 mb-3">Calculator Data</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            {lead.projected_monthly_clicks && (
+                              <div>
+                                <p className="text-xs text-slate-400">Monthly Clicks</p>
+                                <p className="text-slate-900 font-medium">
+                                  {lead.projected_monthly_clicks.toLocaleString()}
+                                </p>
+                              </div>
+                            )}
+                            {lead.click_range_id && (
+                              <div>
+                                <p className="text-xs text-slate-400">Click Range</p>
+                                <p className="text-slate-900 font-medium">{lead.click_range_id}</p>
+                              </div>
+                            )}
+                            {lead.earnings_conservative && (
+                              <div>
+                                <p className="text-xs text-slate-400">Conservative</p>
+                                <p className="text-slate-900 font-medium">
+                                  {formatCurrency(lead.earnings_conservative)}/yr
+                                </p>
+                              </div>
+                            )}
+                            {lead.earnings_realistic && (
+                              <div>
+                                <p className="text-xs text-slate-400">Realistic</p>
+                                <p className="text-slate-900 font-medium">
+                                  {formatCurrency(lead.earnings_realistic)}/yr
+                                </p>
+                              </div>
+                            )}
+                            {lead.earnings_optimistic && (
+                              <div>
+                                <p className="text-xs text-slate-400">Optimistic</p>
+                                <p className="text-slate-900 font-medium">
+                                  {formatCurrency(lead.earnings_optimistic)}/yr
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dates */}
                       <div>
                         <h3 className="text-sm font-medium text-slate-500 mb-3">Dates</h3>
                         <div className="grid grid-cols-2 gap-4">
@@ -453,12 +738,12 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                               <p className="text-slate-900 text-sm">{formatDate(lead.created_at)}</p>
                             </div>
                           </div>
-                          {lead.replied_at && (
+                          {lead.last_replied_at && (
                             <div className="flex items-center gap-2">
                               <Mail className="w-4 h-4 text-green-500" />
                               <div>
                                 <p className="text-xs text-slate-400">Replied</p>
-                                <p className="text-slate-900 text-sm">{formatDate(lead.replied_at)}</p>
+                                <p className="text-slate-900 text-sm">{formatDate(lead.last_replied_at)}</p>
                               </div>
                             </div>
                           )}
@@ -468,6 +753,15 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                               <div>
                                 <p className="text-xs text-slate-400">Applied</p>
                                 <p className="text-slate-900 text-sm">{formatDate(lead.applied_at)}</p>
+                              </div>
+                            </div>
+                          )}
+                          {lead.call_scheduled_at && (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-purple-500" />
+                              <div>
+                                <p className="text-xs text-slate-400">Call Scheduled</p>
+                                <p className="text-slate-900 text-sm">{formatDate(lead.call_scheduled_at)}</p>
                               </div>
                             </div>
                           )}
@@ -575,10 +869,10 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
 
             {/* Sidebar Actions */}
             <div className="space-y-4">
+              {/* Quick Actions */}
               <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <h3 className="font-medium text-slate-900 mb-4">Quick Actions</h3>
                 <div className="space-y-2">
-                  {/* Send Email Button */}
                   <button
                     onClick={() => setShowComposeModal(true)}
                     disabled={lead.unsubscribed}
@@ -629,6 +923,77 @@ export function LeadDetailClient({ leadId, userName }: LeadDetailClientProps) {
                     <UserX className="w-4 h-4" />
                     Mark as Lost
                   </button>
+                </div>
+              </div>
+
+              {/* Next Action */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <h3 className="text-sm font-medium text-amber-800 mb-2">Next Action</h3>
+                {editingField === 'next_action' ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      defaultValue={lead.next_action || ''}
+                      onBlur={(e) => handleFieldUpdate('next_action', e.target.value || null)}
+                      className="w-full px-2 py-1 border border-amber-300 rounded text-sm bg-white"
+                      placeholder="e.g., Follow up on LinkedIn"
+                      autoFocus
+                    />
+                    <input
+                      type="date"
+                      defaultValue={lead.next_followup_at?.split('T')[0] || ''}
+                      onChange={(e) => handleFieldUpdate('next_followup_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
+                      className="w-full px-2 py-1 border border-amber-300 rounded text-sm bg-white"
+                    />
+                  </div>
+                ) : lead.next_action ? (
+                  <div
+                    className="cursor-pointer hover:bg-amber-100 -m-2 p-2 rounded"
+                    onClick={() => setEditingField('next_action')}
+                  >
+                    <p className="text-sm font-medium text-amber-900">{lead.next_action}</p>
+                    {lead.next_followup_at && (
+                      <p className="text-xs text-amber-700 mt-1">
+                        Due: {new Date(lead.next_followup_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingField('next_action')}
+                    className="text-sm text-amber-700 hover:text-amber-900"
+                  >
+                    + Set next action
+                  </button>
+                )}
+              </div>
+
+              {/* Engagement Stats */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                <h3 className="font-medium text-slate-900 mb-4">Engagement</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 flex items-center gap-2">
+                      <Eye className="w-4 h-4" /> Email Opens
+                    </span>
+                    <span className="font-medium">{lead.email_opens || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 flex items-center gap-2">
+                      <MousePointerClick className="w-4 h-4" /> Email Clicks
+                    </span>
+                    <span className="font-medium">{lead.email_clicks || 0}</span>
+                  </div>
+                  <div className="border-t border-slate-100 pt-3 mt-3">
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span className="text-slate-500">Last Contacted</span>
+                      <span className="font-medium">{formatShortDate(lead.last_contacted_at || null)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500">Last Replied</span>
+                      <span className="font-medium">{formatShortDate(lead.last_replied_at || null)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
