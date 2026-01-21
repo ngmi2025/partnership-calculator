@@ -2,7 +2,26 @@
   "crons": [
     {
       "path": "/api/cron/send-followups",
-      "schedule": "0 */1 * * *"
+      "schedule": "0 9 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/partnership-admin/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
   ]
 }

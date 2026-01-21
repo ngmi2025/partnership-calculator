@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /partnership-admin
+Disallow: /api/admin/
+Disallow: /api/auth/
+Disallow: /api/webhooks/
+Disallow: /api/cron/
+Disallow: /api/leads/unsubscribe
+
+# Allow calculator and public pages
+Allow: /
+Allow: /api/subscribe
+Allow: /api/apply
