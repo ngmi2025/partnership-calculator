@@ -21,13 +21,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Find admin user
+    console.log('Attempting login for:', email.toLowerCase());
+    
     const { data: user, error } = await supabaseAdmin
       .from('admin_users')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
 
+    console.log('Supabase query result:', { user: user ? 'found' : 'not found', error: error?.message });
+
     if (error || !user) {
+      console.error('Login failed - user lookup error:', error);
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -35,9 +40,12 @@ export async function POST(request: NextRequest) {
     }
 
     const typedUser = user as unknown as AdminUser;
+    console.log('User found:', typedUser.email, 'Has hash:', !!typedUser.password_hash);
 
     // Verify password
     const isValid = await verifyPassword(password, typedUser.password_hash);
+    console.log('Password verification result:', isValid);
+    
     if (!isValid) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
